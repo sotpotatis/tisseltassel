@@ -97,3 +97,7 @@ and get a response back, without exposing any API secrets!
 ## Naming
 
 "Tisseltassel" is a Swedish saying for when people are whispering to each other.
+
+## Code formatting
+
+This project uses [pre-commit](https://pre-commit.com) to automatically format files with [Prettier](https://prettier.io/).

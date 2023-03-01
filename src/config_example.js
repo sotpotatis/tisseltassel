@@ -2,12 +2,17 @@
 I am an example config for Tisseltissel! Edit me.
 See the README.md file for more information. */
 // Import all the API converters that you want
-const LastFMAPIConverter = require("./apiConverters/lastfm.js")
+const LastFMAPIConverter = require("./apiConverters/lastfm.js");
 // ...then define the actual config...
 const config = {
-    converters : { // Define all the API converters you want to make available here.
-        lastFM: new LastFMAPIConverter("<YOUR_API_KEY>") // The Last.FM API implementation is a barebones example.
-    }
-}
+  converters: {
+    // Define all the API converters you want to make available here.
+    lastFM: new LastFMAPIConverter("<YOUR_API_KEY>"), // The Last.FM API implementation is a barebones example.
+  },
+  // Optionally, change your CORS settings. For example, if you want a stricter origin, see here.
+  cors: {
+    origin: "*",
+  },
+};
 // ...then export it!
-module.exports = config
+module.exports = config;
