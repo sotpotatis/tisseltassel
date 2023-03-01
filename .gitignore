@@ -1,0 +1,10 @@
+# Local Netlify folder
+.netlify
+# Local build
+/netlify/functions/tisseltassel.zip
+# Node modules
+node_modules
+# Config
+/src/config.js
+# PyCharm/JetBrains folder
+.idea/

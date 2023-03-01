@@ -1,0 +1,145 @@
+/* tisseltassel.js
+Exposes the main Netlify functions. */
+// Import config
+const axios = require("axios")
+const config = require("../../src/config")
+// Constants
+const requiredParameters = [
+    "apiType",
+    "apiMethod",
+    "apiData"
+]
+const successStatus = "success"
+const errorStatus = "error"
+function generateAPIResponse(status, content){
+    /**
+     * Function for generating an API response which is a JSON object.
+     * @param status The status of the response.
+     * @param content The content of the response.
+     */
+    content.status = status
+    content.success = status === successStatus
+    return JSON.stringify(content)
+}
+function generateAPIError(message, content=null){
+    /**
+     * Shortcut function for generating an API error.
+     * @param message The error message.
+     */
+    if (content === null){
+        content = {}
+    }
+    content.message = message
+    return generateAPIResponse(errorStatus, content)
+}
+function generateAPISuccess(content){
+    /** Shortcut function for returning an API success response.
+     * @param content The content to include in the response.*/
+    return generateAPIResponse(successStatus, content)
+}
+exports.handler = function (event, context, callback){
+    /**
+     * Runs every time a request is incoming.
+    */
+    // Only allow POST methods, regardless the API method.
+    // Remember, the handler only receives the API data and then makes a request
+    // to the third party API, meaning methods don't need to match at all.
+    if (event.httpMethod !== "POST"){
+        callback(null, {
+            statusCode: 405,
+            body: generateAPIError("Method not allowed (hint: use POST)")
+        })
+    }
+    let params = null
+    try {
+       params = JSON.parse(event.body)
+    }
+    catch(e) {
+        console.log(`Failed to parse JSON (${e}). Returning error...`)
+        callback(null, {
+            statusCode: 400,
+            body: generateAPIError("Invalid JSON.")
+        })
+        return
+    }
+    console.log("Validating incoming request to tisseltassel...")
+    if (params.length === 0){
+        console.log("No parameters passed.")
+        callback(null, {
+            statusCode: 400,
+            body: generateAPIError("No parameters were passed.")
+        })
+        return
+    }
+    // Validate parameters
+    const paramKeys = Object.keys(params)
+    for (const requiredParameter of requiredParameters){
+        if (!paramKeys.includes(requiredParameter)){
+            callback(null, {
+                statusCode: 400,
+                body: generateAPIError(`Parameter ${requiredParameter} missing from request.`)
+            })
+            return
+        }
+    }
+    console.log("Request has required parameters.")
+    const apiType = params.apiType
+    const apiMethod = params.apiMethod
+    const apiData = params.apiData
+    // Validate type and method
+    if (!Object.keys(config.converters).includes(apiType)){
+        console.log("Invalid API type requested.")
+        callback(null, {
+            statusCode: 404,
+            body: generateAPIError(`Non-existent API ${apiType} requested (is not available on server).`)
+        })
+        return
+    }
+    else if (!Object.keys(config.converters[apiType].methods).includes(apiMethod)){
+        console.log("Invalid API method requested.")
+        callback(null, {
+            statusCode: 404,
+            body: generateAPIError(`Non-existent API method ${apiType} requested (is not available on server).`)
+        })
+        return
+    }
+    if (typeof apiData !== "object"){
+        console.log("Invalid apiData type.")
+         callback(null, {
+            statusCode: 400,
+            body: generateAPIError("Invalid argument apiData (is not object)")
+        })
+    }
+    const axiosArguments = config.converters[apiType].methods[apiMethod](apiData)
+    // The converter function should return null if data passed is invalid.
+    if (axiosArguments === null){
+        console.log("Something failed in argument validation. Returning error...")
+        callback(null, {
+            statusCode: 400,
+            body: generateAPIError(`Argument validation failed.`)
+        })
+        return
+    }
+    console.log(`Requesting API with arguments ${axiosArguments}...`)
+     // Pass the arguments we received to fetch()
+    axios(axiosArguments[0], axiosArguments[1]).then((response)=>{
+    const responseJSON = response.data // Get response JSON
+    // Return either ok or bad response
+        console.log("Request succeeded!")
+        callback(null, {
+            statusCode: 200,
+            body: generateAPISuccess({
+                response: responseJSON
+            })
+        })}).catch((error)=>{
+                console.log(`Request failed with error ${error}.`)
+        callback(null, {
+            statusCode: 500,
+            body: generateAPIError(`Request failed :(`,
+                // Add response if a response exists.
+                {
+                    response:  error.response!== undefined ? (error.response.data !== undefined ? error.response.data : null): null
+                })
+        })
+            })
+}

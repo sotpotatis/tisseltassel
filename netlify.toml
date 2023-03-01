@@ -1,0 +1,8 @@
+#Use esbuild to avoid problems related to node-fetch
+[functions]
+    node_bundler = "esbuild"
+#Set up redirects from /api/ to the mapped Netlify function.
+[[redirects]]
+from="/api/*"
+to="/.netlify/functions/:splat"
+status=200
